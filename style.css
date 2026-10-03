@@ -1,0 +1,275 @@
+:root {
+  --accent: #8b93a1;
+  --ink: #f2f4f8;
+  --bg: rgba(20, 22, 28, 0.88);
+}
+body[data-state="working"] { --accent: #4da3ff; }
+body[data-state="done"]    { --accent: #4cd787; }
+body[data-state="asking"]  { --accent: #ff9f43; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: system-ui, "Segoe UI", sans-serif;
+}
+
+/* ---------- full face ---------- */
+
+#widget {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border-radius: 24%;
+  background: var(--bg);
+  border: max(1.5px, 1.6vmin) solid color-mix(in srgb, var(--accent) 60%, transparent);
+  transition: border-color 0.3s;
+  cursor: grab;
+}
+#widget:active { cursor: grabbing; }
+
+/* glow ring, animated by opacity only so it stays on the compositor */
+#widget::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 max(2px, 2.4vmin) var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#face {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.f { opacity: 0; transition: opacity 0.25s; }
+body[data-state="idle"] .f-idle,
+body[data-state="working"] .f-working,
+body[data-state="done"] .f-done,
+body[data-state="asking"] .f-asking { opacity: 1; }
+
+.eye { fill: var(--ink); }
+.pupil { fill: #16181e; }
+.accent { fill: var(--accent); }
+.line { fill: none; stroke: var(--ink); stroke-width: 3.6; stroke-linecap: round; }
+.line.thick { stroke-width: 4.6; }
+.blush { fill: #ff8fa3; opacity: 0.55; }
+.think { fill: var(--accent); }
+.q { fill: none; stroke: #16181e; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.qdot { fill: #16181e; }
+
+.blink, .look, .think, .bubble, .f-done {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* animations only run for the face that is showing */
+body[data-state="idle"] .blink { animation: blink 5.5s infinite; }
+body[data-state="working"] .look { animation: look 4.5s ease-in-out infinite; }
+body[data-state="working"] .think { animation: think 1.5s ease-in-out infinite; }
+body[data-state="working"] .d2 { animation-delay: 0.2s; }
+body[data-state="working"] .d3 { animation-delay: 0.4s; }
+body[data-state="done"] .f-done { animation: pop 0.45s ease-out; }
+body[data-state="asking"] .bubble { animation: pulse 1.6s ease-in-out infinite; }
+body[data-state="asking"] #widget::after { animation: glow 1.6s ease-in-out infinite; }
+
+@keyframes blink {
+  0%, 93%, 100% { transform: scaleY(1); }
+  96.5% { transform: scaleY(0.08); }
+}
+@keyframes look {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-3px, 0); }
+  50% { transform: translate(0, -1.5px); }
+  75% { transform: translate(3px, 0); }
+}
+@keyframes think {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2.5px); }
+}
+@keyframes pop {
+  0% { transform: scale(0.88); }
+  60% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.13); }
+}
+@keyframes glow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 0.75; }
+}
+
+/* ---------- usage meter ---------- */
+
+#usage {
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: 3%;
+  height: 13%; /* taller than the bars so they are easy to hover */
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: max(1.5px, 1.6vmin);
+}
+body.has-usage #usage { display: flex; }
+/* top bar: 5-hour limit; bottom bar: weekly limit */
+.usage-track {
+  width: 100%;
+  height: max(2.5px, 2.6vmin);
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+.usage-fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.4s, background-color 0.4s;
+}
+#usage-fill {
+  width: calc(var(--pct, 0) * 1%);
+  background: var(--usage, #4cd787);
+}
+#week-fill {
+  width: calc(var(--week-pct, 0) * 1%);
+  background: var(--week, #4cd787);
+}
+body:not(.has-week) #week-track { display: none; }
+#usage-label {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  transform: translateX(-50%);
+  padding: 0.3em 0.6em;
+  border-radius: 0.6em;
+  background: rgba(8, 9, 12, 0.94);
+  color: var(--ink);
+  font-size: clamp(8px, 7vmin, 13px);
+  line-height: 1.25;
+  text-align: center;
+  white-space: pre;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+#usage:hover #usage-label { opacity: 1; }
+
+/* ---------- context warning ---------- */
+
+#context {
+  position: absolute;
+  top: 7%;
+  left: 8%;
+  padding: 0.15em 0.5em;
+  border-radius: 99px;
+  background: #ffb020;
+  color: #16181e;
+  font-size: clamp(7px, 6.5vmin, 12px);
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+#context.critical { background: #ff5c5c; }
+#context[hidden] { display: none; }
+#widget:hover #context { opacity: 0; } /* makes room for the hover buttons */
+
+/* ---------- hover controls ---------- */
+
+#controls {
+  position: absolute;
+  top: 7%;
+  left: 7%;
+  display: flex;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+#resize::after {
+  content: "";
+  position: absolute;
+  right: 22%;
+  bottom: 22%;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+  border-bottom-right-radius: 4px;
+  opacity: 0.7;
+}
+#widget:hover #controls,
+#widget:hover #resize { opacity: 1; }
+
+#controls button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+#controls button:hover { background: rgba(255, 255, 255, 0.34); }
+#btn-mini span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* ---------- mini mode: a 24px dot in the corner of a slightly larger see-through window ---------- */
+
+#dot {
+  display: none;
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+/* usage as a ring around the dot: state colour in the middle, a dark gap, then the ring */
+body.has-usage #dot {
+  background:
+    radial-gradient(closest-side, var(--accent) 0 62%, #16181e 64% 74%, transparent 76%),
+    conic-gradient(var(--usage, #4cd787) calc(var(--pct, 0) * 1%), #454b57 0);
+  box-shadow: none;
+}
+body.mini #widget { display: none; }
+body.mini #dot { display: block; }
+body.mini[data-state="asking"] #dot { animation: dot-pulse 1.2s ease-in-out infinite; }
+
+@keyframes dot-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(0.72); opacity: 0.6; }
+}

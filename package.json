@@ -1,0 +1,61 @@
+{
+  "name": "claude-face",
+  "version": "1.0.0",
+  "description": "A small floating face that shows what Claude Code is doing",
+  "author": "Fahim",
+  "license": "MIT",
+  "homepage": "https://github.com/Fahim-2135/claude-face",
+  "repository": "github:Fahim-2135/claude-face",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "node scripts/start.js",
+    "icon": "node scripts/make-icon.js",
+    "dist": "node scripts/make-icon.js && electron-builder",
+    "install-hooks": "node install-hooks.js",
+    "remove-hooks": "node install-hooks.js --remove"
+  },
+  "build": {
+    "appId": "com.fahim.claudeface",
+    "productName": "claude-face",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "png.js",
+      "usage.js",
+      "ping.js",
+      "queue.js",
+      "context.js",
+      "focus.js",
+      "hook.js",
+      "hooks.js",
+      "index.html",
+      "style.css",
+      "renderer.js"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": false
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  }
+}

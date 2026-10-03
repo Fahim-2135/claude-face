@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'">
+  <title>claude-face</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-state="idle">
+  <div id="widget">
+    <svg id="face" viewBox="0 0 100 100" aria-hidden="true">
+      <!-- idle: calm, slow blink -->
+      <g class="f f-idle">
+        <ellipse class="eye blink" cx="34" cy="46" rx="6" ry="7.5"/>
+        <ellipse class="eye blink" cx="66" cy="46" rx="6" ry="7.5"/>
+        <path class="line" d="M43 67 Q50 71 57 67"/>
+      </g>
+
+      <!-- working: focused eyes glancing around, thinking dots -->
+      <g class="f f-working">
+        <path class="line" d="M26 37 L42 38"/>
+        <path class="line" d="M74 37 L58 38"/>
+        <g class="look">
+          <ellipse class="eye" cx="34" cy="49" rx="6" ry="6"/>
+          <ellipse class="eye" cx="66" cy="49" rx="6" ry="6"/>
+        </g>
+        <path class="line" d="M45 66 H55"/>
+        <circle class="think d1" cx="40" cy="82" r="2.8"/>
+        <circle class="think d2" cx="50" cy="82" r="2.8"/>
+        <circle class="think d3" cx="60" cy="82" r="2.8"/>
+      </g>
+
+      <!-- done: happy closed eyes, big smile -->
+      <g class="f f-done">
+        <path class="line thick" d="M25 50 Q34 38 43 50"/>
+        <path class="line thick" d="M57 50 Q66 38 75 50"/>
+        <path class="line thick" d="M37 63 Q50 77 63 63"/>
+        <circle class="blush" cx="22" cy="62" r="5"/>
+        <circle class="blush" cx="78" cy="62" r="5"/>
+      </g>
+
+      <!-- asking: wide eyes, "?" bubble -->
+      <g class="f f-asking">
+        <circle class="eye" cx="31" cy="54" r="10"/>
+        <circle class="pupil" cx="31" cy="54" r="4"/>
+        <circle class="eye" cx="61" cy="54" r="10"/>
+        <circle class="pupil" cx="61" cy="54" r="4"/>
+        <ellipse class="eye" cx="46" cy="78" rx="3.5" ry="4.5"/>
+        <g class="bubble">
+          <circle class="accent" cx="80" cy="21" r="14"/>
+          <path class="q" d="M75.5 17.5 Q75.5 13 80 13 Q84.5 13 84.5 17 Q84.5 19.5 82 21 Q80 22.2 80 24.5"/>
+          <circle class="qdot" cx="80" cy="29" r="1.9"/>
+        </g>
+      </g>
+    </svg>
+
+    <div id="context" title="A session's context is nearly full. Claude will soon compact it and may forget details." hidden></div>
+
+    <div id="usage">
+      <div id="usage-label"></div>
+      <div class="usage-track"><div id="usage-fill" class="usage-fill"></div></div>
+      <div id="week-track" class="usage-track"><div id="week-fill" class="usage-fill"></div></div>
+    </div>
+
+    <div id="controls">
+      <button id="btn-mini" title="Mini mode"><span></span></button>
+      <button id="btn-hide" title="Hide to tray">&ndash;</button>
+    </div>
+    <div id="resize" title="Drag to resize"></div>
+  </div>
+
+  <div id="dot" title="Show face"></div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
