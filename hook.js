@@ -96,9 +96,16 @@ process.stdin.on('end', () => {
     // then would skip the green face, so let it go idle on the usual timer instead.
     if (event.hook_event_name === 'SessionEnd' && process.env.CREW_WORKER === '1') return quit();
     const base = { session_id: event.session_id, cwd: event.cwd, transcript: event.transcript_path };
-    // A run by a Crew agent: clicking the face opens that agent in the Crew window.
+    // A run by a Crew agent: the face shows that agent's own face and name, and clicking it
+    // opens the agent in the Crew window.
     if (process.env.CREW_AGENT && process.env.CREW_CLI) {
-      base.crew = { agent: process.env.CREW_AGENT, cli: process.env.CREW_CLI, node: process.env.CREW_NODE };
+      base.crew = {
+        agent: process.env.CREW_AGENT,
+        cli: process.env.CREW_CLI,
+        node: process.env.CREW_NODE,
+        icon: process.env.CREW_ICON,
+        title: process.env.CREW_TITLE,
+      };
     }
 
     if (event.hook_event_name === 'PermissionRequest') {

@@ -16,10 +16,105 @@ api.onUpdate((data) => {
   if (data.state !== state) {
     const first = state === null;
     state = data.state;
-    document.body.dataset.state = state;
     if (!first && soundOn) chime(state);
   }
+  showFaces(data.faces || [], data.state);
 });
+
+// ---------- the faces: five heads, the most urgent in front ----------
+
+const CF = window.CrewFaces;
+document.getElementById('defs').innerHTML = CF.DEFS;
+
+// Your own Claude Code sessions: Claude's orange, or VS Code's black and blue.
+const OWN = {
+  you: { shape: 'squircle', color: '#D97757' },
+  vscode: { shape: 'squircle', color: '#1F2633', code: true },
+};
+const DARK = '#2a211c';
+
+/** One head: a Crew Critter's body, face and prop, without arms or feet. */
+function head(icon, mood) {
+  const own = OWN[icon];
+  const c = own || CF.CRITTERS[icon] || CF.CRITTERS.crown;
+  const sh = CF.SHAPES[c.shape];
+  const tint = own && own.code ? c.color : CF.mix(c.color, '#ffffff', 0.3);
+  // At work the heads look focused (a flat mouth); dozing has no floating z's here.
+  let f = CF.face(mood === 'working' ? 'smile' : mood, sh.eyeY, false).replace(/<g class="zz"[\s\S]*?<\/g>/, '');
+  if (mood === 'working') f = f.replace(`d="M46 ${sh.eyeY + 9}q4 3.5 8 0"`, `d="M46.5 ${sh.eyeY + 10}h7"`);
+  let top = '';
+  if (own && own.code) {
+    // Light eyes on a dark face, blue blush, a blue rim and a </> on top.
+    f = f.split(DARK).join('#E8F1FF').split('#ff7088').join('#3794FF');
+    top = `<path d="M37 ${sh.top - 12}l-6 5 6 5M63 ${sh.top - 12}l6 5-6 5M53.5 ${sh.top - 16}l-7 15" fill="none" stroke="#3794FF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>`;
+  } else if (!own) {
+    const p = CF.prop(icon in CF.CRITTERS ? icon : 'crown', sh.top, sh.eyeY, c.color);
+    return `${p.back || ''}${body(sh, c, tint)}${f}${p.front}`;
+  }
+  const rim = own && own.code ? sh.body('fill="none" stroke="#3794FF" stroke-width="2.4"') : '';
+  return `${body(sh, c, tint)}${rim}${f}${top}`;
+}
+
+function body(sh, c, tint) {
+  return sh.body(CF.paint(c.shape, tint)) + sh.body('fill="url(#crew-shade)"') + sh.body('fill="url(#crew-shine)"');
+}
+
+// Front seat, then the four corners: [centre x, centre y, size] in % of the widget.
+const SEATS = [[50, 43, 58], [17, 17, 24], [83, 17, 24], [17, 66, 24], [83, 66, 24]];
+const crewEl = document.getElementById('crew');
+const dotFace = document.getElementById('dot-face');
+const drawn = new Map(); // key -> element
+let dotKey = '';
+
+function svgFor(face) {
+  return `<svg viewBox="0 6 100 86"><g class="hd">${head(face.icon, face.state)}</g></svg>`;
+}
+
+function showFaces(faces, fallback) {
+  const lead = faces[0];
+  document.body.dataset.state = lead ? lead.state : fallback;
+  const keep = new Set(faces.map((f) => f.key));
+  for (const [key, el] of drawn) {
+    if (!keep.has(key)) {
+      el.remove();
+      drawn.delete(key);
+    }
+  }
+  faces.forEach((face, i) => {
+    let el = drawn.get(face.key);
+    if (!el) {
+      el = document.createElement('div');
+      crewEl.append(el);
+      drawn.set(face.key, el);
+    }
+    const [x, y, s] = SEATS[i];
+    el.className = `seat n${i}${i === 0 ? ' lead' : ''}`;
+    el.style.left = `${x - s / 2}%`;
+    el.style.top = `${y - s / 2}%`;
+    el.style.width = `${s}%`;
+    el.style.height = `${s}%`;
+    el.style.zIndex = i === 0 ? '2' : '1';
+    const look = `${face.icon}:${face.state}`;
+    if (el.dataset.look !== look) {
+      el.dataset.look = look;
+      el.dataset.s = face.state;
+      el.innerHTML = svgFor(face);
+      if (face.title) {
+        const name = document.createElement('span');
+        name.className = 'who';
+        name.textContent = face.title;
+        el.append(name);
+      }
+    }
+  });
+  // Mini mode: just the front face, in a small round badge.
+  const dotLook = lead ? `${lead.icon}:${lead.state}` : '';
+  if (lead && dotLook !== dotKey) {
+    dotKey = dotLook;
+    dotFace.dataset.s = lead.state;
+    dotFace.innerHTML = svgFor(lead);
+  }
+}
 
 // ---------- usage meter ----------
 

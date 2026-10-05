@@ -1,7 +1,9 @@
+/* The widget: ivory, like Crew's icon, with five heads (Crew's Critters) and a colour ring for
+   the state. They move a little, never much. */
 :root {
   --accent: #8b93a1;
-  --ink: #f2f4f8;
-  --bg: rgba(20, 22, 28, 0.88);
+  --ink: #2a211c;
+  --bg: rgba(241, 236, 225, 0.97);
 }
 body[data-state="working"] { --accent: #4da3ff; }
 body[data-state="done"]    { --accent: #4cd787; }
@@ -26,9 +28,10 @@ html, body {
   box-sizing: border-box;
   border-radius: 24%;
   background: var(--bg);
-  border: max(1.5px, 1.6vmin) solid color-mix(in srgb, var(--accent) 60%, transparent);
+  border: max(1.5px, 1.6vmin) solid color-mix(in srgb, var(--accent) 70%, transparent);
   transition: border-color 0.3s;
   cursor: grab;
+  overflow: hidden;
 }
 #widget:active { cursor: grabbing; }
 
@@ -43,62 +46,90 @@ html, body {
   pointer-events: none;
 }
 
-#face {
+#crew, #badge {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
 }
+#badge { z-index: 3; opacity: 0; transition: opacity 0.25s; }
+body[data-state="asking"] #badge { opacity: 1; }
+#defs { position: absolute; }
 
-.f { opacity: 0; transition: opacity 0.25s; }
-body[data-state="idle"] .f-idle,
-body[data-state="working"] .f-working,
-body[data-state="done"] .f-done,
-body[data-state="asking"] .f-asking { opacity: 1; }
+/* each head glides between the front seat and the corners */
+.seat {
+  position: absolute;
+  transition: left 0.6s cubic-bezier(.3,.7,.3,1.1), top 0.6s cubic-bezier(.3,.7,.3,1.1),
+    width 0.6s cubic-bezier(.3,.7,.3,1.1), height 0.6s cubic-bezier(.3,.7,.3,1.1);
+}
+.seat svg, #dot-face svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.seat .who {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  margin-top: -2%;
+  color: var(--ink);
+  opacity: 0.7;
+  font-size: clamp(7px, 7.5vmin, 13px);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.seat:not(.lead) .who { display: none; }
 
-.eye { fill: var(--ink); }
-.pupil { fill: #16181e; }
 .accent { fill: var(--accent); }
-.line { fill: none; stroke: var(--ink); stroke-width: 3.6; stroke-linecap: round; }
-.line.thick { stroke-width: 4.6; }
-.blush { fill: #ff8fa3; opacity: 0.55; }
-.think { fill: var(--accent); }
-.q { fill: none; stroke: #16181e; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.q { fill: none; stroke: #16181e; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
 .qdot { fill: #16181e; }
 
-.blink, .look, .think, .bubble, .f-done {
+.hd, .eyes, .tear, .bubble {
   transform-box: fill-box;
   transform-origin: center;
 }
+.hd { transform-origin: 50% 90%; }
 
-/* animations only run for the face that is showing */
-body[data-state="idle"] .blink { animation: blink 5.5s infinite; }
-body[data-state="working"] .look { animation: look 4.5s ease-in-out infinite; }
-body[data-state="working"] .think { animation: think 1.5s ease-in-out infinite; }
-body[data-state="working"] .d2 { animation-delay: 0.2s; }
-body[data-state="working"] .d3 { animation-delay: 0.4s; }
-body[data-state="done"] .f-done { animation: pop 0.45s ease-out; }
+/* idle: a slow breath, each head out of step; working: a small bob that ripples across, eyes
+   glancing; needs you: the front head nudges and its eyes well up; done: one happy pop */
+[data-s="idle"] .hd { animation: breathe 4.2s ease-in-out infinite; }
+[data-s="working"] .hd { animation: bob 2.6s ease-in-out infinite; }
+[data-s="working"] .eyes { animation: glance 4.5s ease-in-out infinite; }
+[data-s="asking"] .hd { animation: nudge 2.2s ease-in-out infinite; }
+[data-s="asking"] .tear { animation: welling 2.6s ease-in infinite; }
+[data-s="done"] .hd { animation: pop 0.55s ease-out both; }
+.seat.n1 .hd { animation-delay: -0.7s; }
+.seat.n2 .hd { animation-delay: -1.4s; }
+.seat.n3 .hd { animation-delay: -2.1s; }
+.seat.n4 .hd { animation-delay: -2.8s; }
 body[data-state="asking"] .bubble { animation: pulse 1.6s ease-in-out infinite; }
 body[data-state="asking"] #widget::after { animation: glow 1.6s ease-in-out infinite; }
 
-@keyframes blink {
-  0%, 93%, 100% { transform: scaleY(1); }
-  96.5% { transform: scaleY(0.08); }
+@keyframes breathe {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.025, 0.98); }
 }
-@keyframes look {
+@keyframes bob {
+  0%, 30%, 100% { transform: translateY(0); }
+  15% { transform: translateY(-5%); }
+}
+@keyframes glance {
   0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(-3px, 0); }
-  50% { transform: translate(0, -1.5px); }
-  75% { transform: translate(3px, 0); }
+  25% { transform: translate(-2px, 0); }
+  50% { transform: translate(0, -1px); }
+  75% { transform: translate(2px, 0); }
 }
-@keyframes think {
-  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
-  30% { opacity: 1; transform: translateY(-2.5px); }
+@keyframes nudge {
+  0%, 70%, 100% { transform: translateY(0); }
+  80% { transform: translateY(-5%); }
+  90% { transform: translateY(0); }
+}
+@keyframes welling {
+  0%, 60% { transform: translateY(0); opacity: 0; }
+  70% { opacity: 1; }
+  100% { transform: translateY(4px); opacity: 0; }
 }
 @keyframes pop {
-  0% { transform: scale(0.88); }
-  60% { transform: scale(1.06); }
+  0% { transform: scale(0.85); }
+  60% { transform: scale(1.08); }
   100% { transform: scale(1); }
 }
 @keyframes pulse {
@@ -108,6 +139,9 @@ body[data-state="asking"] #widget::after { animation: glow 1.6s ease-in-out infi
 @keyframes glow {
   0%, 100% { opacity: 0; }
   50% { opacity: 0.75; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hd, .eyes, .tear, .bubble, #widget::after, #dot { animation: none !important; }
 }
 
 /* ---------- usage meter ---------- */
@@ -129,7 +163,7 @@ body.has-usage #usage { display: flex; }
   width: 100%;
   height: max(2.5px, 2.6vmin);
   border-radius: 99px;
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(42, 33, 28, 0.12);
   overflow: hidden;
 }
 .usage-fill {
@@ -154,7 +188,7 @@ body:not(.has-week) #week-track { display: none; }
   padding: 0.3em 0.6em;
   border-radius: 0.6em;
   background: rgba(8, 9, 12, 0.94);
-  color: var(--ink);
+  color: #f2f4f8;
   font-size: clamp(8px, 7vmin, 13px);
   line-height: 1.25;
   text-align: center;
@@ -227,7 +261,7 @@ body:not(.has-week) #week-track { display: none; }
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(42, 33, 28, 0.1);
   color: var(--ink);
   font-size: 13px;
   line-height: 16px;
@@ -235,7 +269,7 @@ body:not(.has-week) #week-track { display: none; }
   display: grid;
   place-items: center;
 }
-#controls button:hover { background: rgba(255, 255, 255, 0.34); }
+#controls button:hover { background: rgba(42, 33, 28, 0.2); }
 #btn-mini span {
   width: 7px;
   height: 7px;
@@ -243,33 +277,30 @@ body:not(.has-week) #week-track { display: none; }
   background: var(--accent);
 }
 
-/* ---------- mini mode: a 24px dot in the corner of a slightly larger see-through window ---------- */
+/* ---------- mini mode: the front face in a small round badge, in the corner of a slightly larger
+   see-through window ---------- */
 
 #dot {
   display: none;
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 24px;
-  height: 24px;
+  width: 42px;
+  height: 42px;
   box-sizing: border-box;
   border-radius: 50%;
-  background: var(--accent);
-  box-shadow: inset 0 0 0 1.5px rgba(0, 0, 0, 0.35);
+  background: var(--bg);
+  border: 2.5px solid var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
   cursor: pointer;
+  overflow: hidden;
 }
-/* usage as a ring around the dot: state colour in the middle, a dark gap, then the ring */
-body.has-usage #dot {
-  background:
-    radial-gradient(closest-side, var(--accent) 0 62%, #16181e 64% 74%, transparent 76%),
-    conic-gradient(var(--usage, #4cd787) calc(var(--pct, 0) * 1%), #454b57 0);
-  box-shadow: none;
-}
+#dot-face { position: absolute; inset: 9% 6% 3%; pointer-events: none; }
 body.mini #widget { display: none; }
 body.mini #dot { display: block; }
 body.mini[data-state="asking"] #dot { animation: dot-pulse 1.2s ease-in-out infinite; }
 
 @keyframes dot-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(0.72); opacity: 0.6; }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.88); }
 }

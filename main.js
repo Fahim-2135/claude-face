@@ -48,11 +48,21 @@ const RESUME_PROMPT =
 const MIN_SIZE = 60;
 const MAX_SIZE = 300;
 const DEFAULT_SIZE = 160;
-const MINI_DOT = 24;
+const MINI_DOT = 42; // the most important face, in a small round badge
 const MINI_WINDOW = 48; // Windows won't make a window as small as 24px, so the dot sits in a larger see-through one
 const MARGIN = 20;
 
 const DEBUG = !!process.env.CLAUDE_FACE_DEBUG;
+
+// ---------- the faces: the five heads on the widget ----------
+// The front face is the most urgent session: one that needs you, then one that has just finished
+// (for a moment, so its happy pop shows), then one at work. Crew's agents wear their own faces;
+// your own Claude Code sessions share one. The corners fill with Crew agents seen lately, dozing,
+// and before any has been seen, with the five from Crew's icon.
+const YOUR_FACES = ['you', 'vscode'];
+const JUST_DONE_MS = 8 * 1000;
+const RESTING = ['crown', 'headset', 'bandana', 'tophat', 'antenna'];
+const MAX_FACES = 5;
 const pingLog = []; // what was sent, for the debug endpoint
 const resumeLog = [];
 let usageFake = false;
@@ -85,6 +95,8 @@ const config = {
   bigContextModels: [], // models seen holding more than 200k tokens
   limited: [], // sessions stopped by the usage limit: { id, cwd, at }
   crewOnly: false, // show only Crew's agents, not every Claude Code session
+  yourFace: 'you', // the face of your own Claude Code sessions: 'you' (Claude orange) or 'vscode'
+  crewSeen: [], // Crew agents seen lately, newest first: { agent, icon, title } (they doze in the corners)
 };
 
 function loadConfig() {
@@ -97,6 +109,8 @@ function loadConfig() {
   if (!ASK_DELAYS_MIN.includes(config.askDelayMin)) config.askDelayMin = 2;
   if (!Array.isArray(config.bigContextModels)) config.bigContextModels = [];
   if (!Array.isArray(config.limited)) config.limited = [];
+  if (!Array.isArray(config.crewSeen)) config.crewSeen = [];
+  if (!YOUR_FACES.includes(config.yourFace)) config.yourFace = 'you';
   let changed = false;
   for (const key of ['ntfyTopic', 'replyTopic']) {
     if (typeof config[key] !== 'string' || !/^[-_A-Za-z0-9]{32,64}$/.test(config[key])) {
@@ -276,10 +290,50 @@ function report(sessionId, state, meta = {}) {
   s.lastSeen = now;
   if (meta.cwd) s.cwd = meta.cwd;
   if (meta.transcript) s.transcript = meta.transcript;
-  if (meta.crew) s.crew = meta.crew;
+  if (meta.crew) {
+    s.crew = meta.crew;
+    rememberAgent(meta.crew);
+  }
+  if (state === 'done') setTimeout(refresh, JUST_DONE_MS + 50); // the front seat passes on
   if (state === 'working') forgetLimited(sessionId); // it is running again, by hand or by auto-resume
   readSessionContext(s, now);
   refresh();
+}
+
+/** Keep the agents seen lately (newest first), so the corners show your own team dozing. */
+function rememberAgent({ agent, icon, title }) {
+  const before = JSON.stringify(config.crewSeen);
+  config.crewSeen = [{ agent, icon: icon || null, title: title || agent }]
+    .concat(config.crewSeen.filter((a) => a.agent !== agent))
+    .slice(0, 12);
+  if (JSON.stringify(config.crewSeen) !== before) saveConfig();
+}
+
+/** The faces to draw, front one first: { key, kind, icon, title, state }. */
+function lineup() {
+  const now = Date.now();
+  const rank = (s) =>
+    s.state === 'asking' ? 4 : s.state === 'done' && now - s.since < JUST_DONE_MS ? 3 : s.state === 'working' ? 2 : s.state === 'done' ? 1 : 0;
+  const best = new Map();
+  for (const s of sessions.values()) {
+    const face = s.crew
+      ? { key: 'crew:' + s.crew.agent, kind: 'crew', icon: s.crew.icon || null, title: s.crew.title || s.crew.agent }
+      : { key: 'you', kind: 'you', icon: config.yourFace, title: 'You' };
+    const entry = { ...face, state: s.state, rank: rank(s), since: s.since };
+    const prev = best.get(face.key);
+    if (!prev || entry.rank > prev.rank || (entry.rank === prev.rank && entry.since < prev.since)) best.set(face.key, entry);
+  }
+  // The busiest first; among equals the one that started first keeps its place.
+  const faces = [...best.values()].sort((a, b) => b.rank - a.rank || a.since - b.since);
+  for (const a of config.crewSeen) {
+    if (faces.length >= MAX_FACES) break;
+    if (!best.has('crew:' + a.agent)) faces.push({ key: 'crew:' + a.agent, kind: 'crew', icon: a.icon, title: a.title, state: 'idle' });
+  }
+  for (const icon of RESTING) {
+    if (faces.length >= MAX_FACES) break;
+    if (!faces.some((x) => x.icon === icon)) faces.push({ key: 'rest:' + icon, kind: 'rest', icon, title: '', state: 'idle' });
+  }
+  return faces.slice(0, MAX_FACES).map(({ key, kind, icon, title, state }) => ({ key, kind, icon, title, state }));
 }
 
 function sweep() {
@@ -294,9 +348,15 @@ function sweep() {
   refresh();
 }
 
+let shownFaces = '';
 function refresh() {
   const next = aggregate();
   const context = currentContext();
+  const faces = JSON.stringify(lineup());
+  if (faces !== shownFaces) {
+    shownFaces = faces;
+    if (next === shown && context === shownContext) sendUpdate();
+  }
   if (next !== shown) {
     shown = next;
     shownSince = Date.now();
@@ -331,6 +391,7 @@ function sendUpdate() {
       sound: config.sound,
       usage: currentUsage(),
       context: shownContext,
+      faces: lineup(),
     });
   }
 }
@@ -752,7 +813,11 @@ function crewOf(value) {
   if (!agent || !/^[a-z][a-z0-9]{1,30}$/.test(agent)) return undefined;
   if (!cli || path.basename(cli) !== 'crew.mjs' || !fs.existsSync(cli)) return undefined;
   if (!/^node(\.exe)?$/i.test(path.basename(node))) return undefined;
-  return { agent, cli, node };
+  // Its face (one of Crew's 25 icons) and name, shown on the widget.
+  const icon = /^[a-z]{2,20}$/.test(text(value.icon) || '') ? value.icon : undefined;
+  // eslint-disable-next-line no-control-regex
+  const title = (text(value.title) || '').replace(/[\u0000-\u001f]/g, '').slice(0, 32) || undefined;
+  return { agent, cli, node, icon, title };
 }
 
 function text(value) {
@@ -831,6 +896,24 @@ function buildTrayMenu() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: win.isVisible() ? 'Hide' : 'Show', click: toggleVisible },
     { label: 'Mini mode', type: 'checkbox', checked: config.mini, click: () => setMini(!config.mini) },
+    {
+      label: "Your sessions' face",
+      submenu: [
+        ['you', 'Claude orange'],
+        ['vscode', 'VS Code (black and blue)'],
+      ].map(([id, label]) => ({
+        label,
+        type: 'radio',
+        checked: config.yourFace === id,
+        click: () => {
+          config.yourFace = id;
+          writeConfig();
+          refresh();
+          sendUpdate();
+          buildTrayMenu();
+        },
+      })),
+    },
     {
       label: 'Only Crew agents',
       type: 'checkbox',

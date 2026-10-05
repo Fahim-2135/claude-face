@@ -1,22 +1,24 @@
 # claude-face
 
-**A little face on your desktop that shows what Claude Code is doing.** Glance at it while you study or work: is Claude working, finished, or waiting for you?
+**A little crew on your desktop that shows what Claude Code is doing.** Glance at it while you study or work: is Claude working, finished, or waiting for you?
 
 <p>
-  <img src="screenshots/idle.png" alt="idle" width="130">
-  <img src="screenshots/working.png" alt="working" width="130">
-  <img src="screenshots/done.png" alt="done" width="130">
-  <img src="screenshots/asking.png" alt="asking" width="130">
+  <img src="screenshots/idle.png" alt="idle: the crew dozes" width="150">
+  <img src="screenshots/working.png" alt="working: your session in front" width="150">
+  <img src="screenshots/done.png" alt="done: the CEO agent, happy" width="150">
+  <img src="screenshots/asking.png" alt="asking: Social needs you, teary-eyed" width="150">
 </p>
 
-| Face | Colour | Meaning |
-|---|---|---|
-| Calm, blinking | grey | Nothing happening |
-| Focused eyes, thinking dots | blue | Claude is working |
-| Closed-eye smile + chime | green | Claude finished |
-| Wide eyes, "?" bubble + chime | orange | Claude is waiting for you (a permission or a question) |
+Five little heads sit on an ivory badge. The one in front is the session that matters most right now; the rest wait small in the corners. The colour ring says what the front one is doing:
 
-With several Claude Code sessions open, the face shows the most urgent one: asking > working > done > idle.
+| Front face | Ring | Meaning |
+|---|---|---|
+| The crew dozing, eyes closed | grey | Nothing happening |
+| Focused, a small bob, eyes glancing | blue | Claude is working |
+| Happy closed eyes, one pop + chime | green | Claude finished |
+| Teary eyes, a nudge, "?" bubble + chime | orange | Claude is waiting for you (a permission or a question) |
+
+**Who comes to the front:** a session that needs you, then one that has just finished (for a moment, so you see it), then one at work. Your own Claude Code sessions share one face: Claude orange, or VS Code black and blue (tray → **Your sessions' face**). Agents of a [Crew](https://github.com/Fahim-2135/crew) team each wear their own face and name, the same as in the Crew window, and the corners show the agents seen lately, dozing.
 
 ## Install (Windows)
 
@@ -31,15 +33,15 @@ It starts by itself at login, has no taskbar button, and lives in the system tra
 
 - **Move** it by dragging; **resize** it from the bottom-right corner.
 - **Click** the face to bring the window of the session that needs you to the front (VS Code, and terminals that show the folder name in their title). With several sessions busy it picks the most urgent: asking first, then done, then working. If that session is an agent in **Crew**, the Crew window opens on that agent instead.
-- **Only Crew agents** (tray menu): show only the agents of a [Crew](https://github.com/Fahim-2135) team, not every Claude Code session. Crew sets this up when it installs claude-face (`--crew-only --connect`).
-- Hover for two buttons: **mini mode** (a 24px dot) and **–** (hide to tray).
+- **Only Crew agents** (tray menu): show only the agents of a [Crew](https://github.com/Fahim-2135/crew) team, not every Claude Code session. Crew sets this up when it installs claude-face (`--crew-only --connect`).
+- Hover for two buttons: **mini mode** (just the front face, in a small round badge) and **–** (hide to tray).
 - Right-click the tray icon for every setting.
 
 ## Usage meter
 
-<img src="screenshots/usage-high.png" alt="usage bars" width="130"> <img src="screenshots/mini.png" alt="mini mode with usage ring" width="48">
+<img src="screenshots/usage-high.png" alt="usage bars, with the VS Code face in front" width="150"> <img src="screenshots/mini.png" alt="mini mode: the front face in a round badge" width="48">
 
-Two thin bars show how much of your Claude plan is used: **top = 5-hour limit, bottom = weekly limit**. Green under 60%, amber 60–85%, red above 85%. Hover the bars for the exact numbers and the time until each resets. In mini mode, the ring around the dot shows the 5-hour limit.
+Two thin bars show how much of your Claude plan is used: **top = 5-hour limit, bottom = weekly limit**. Green under 60%, amber 60–85%, red above 85%. Hover the bars for the exact numbers and the time until each resets. Mini mode shows only the front face, its ring in the state's colour.
 
 The numbers are **exact**: the app asks the Claude Code program on your computer for the same figures `/usage` shows. No prompt is sent and no usage is spent. This uses an internal Claude Code request; if a future update changes it, the bars hide themselves rather than show a wrong number.
 
@@ -73,6 +75,8 @@ The app runs a small server on `127.0.0.1:7777` (this computer only). Claude Cod
 | SessionEnd | session removed |
 
 The hook gives up after 1 second and stays silent if the app isn't running, so it can't slow Claude Code down. "done" turns into "idle" after 5 minutes; a session that sends nothing for 30 minutes is dropped.
+
+A Crew agent's run also says which agent it is, its face and its name (`CREW_AGENT`, `CREW_ICON`, `CREW_TITLE`), so the widget can show it. The faces are Crew's Critters, copied into `crew-faces.js` by `npm run sync-faces` from a Crew checkout next to this one.
 
 ## Disconnect or uninstall
 

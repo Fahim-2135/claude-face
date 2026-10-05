@@ -8,51 +8,18 @@
 </head>
 <body data-state="idle">
   <div id="widget">
-    <svg id="face" viewBox="0 0 100 100" aria-hidden="true">
-      <!-- idle: calm, slow blink -->
-      <g class="f f-idle">
-        <ellipse class="eye blink" cx="34" cy="46" rx="6" ry="7.5"/>
-        <ellipse class="eye blink" cx="66" cy="46" rx="6" ry="7.5"/>
-        <path class="line" d="M43 67 Q50 71 57 67"/>
-      </g>
-
-      <!-- working: focused eyes glancing around, thinking dots -->
-      <g class="f f-working">
-        <path class="line" d="M26 37 L42 38"/>
-        <path class="line" d="M74 37 L58 38"/>
-        <g class="look">
-          <ellipse class="eye" cx="34" cy="49" rx="6" ry="6"/>
-          <ellipse class="eye" cx="66" cy="49" rx="6" ry="6"/>
-        </g>
-        <path class="line" d="M45 66 H55"/>
-        <circle class="think d1" cx="40" cy="82" r="2.8"/>
-        <circle class="think d2" cx="50" cy="82" r="2.8"/>
-        <circle class="think d3" cx="60" cy="82" r="2.8"/>
-      </g>
-
-      <!-- done: happy closed eyes, big smile -->
-      <g class="f f-done">
-        <path class="line thick" d="M25 50 Q34 38 43 50"/>
-        <path class="line thick" d="M57 50 Q66 38 75 50"/>
-        <path class="line thick" d="M37 63 Q50 77 63 63"/>
-        <circle class="blush" cx="22" cy="62" r="5"/>
-        <circle class="blush" cx="78" cy="62" r="5"/>
-      </g>
-
-      <!-- asking: wide eyes, "?" bubble -->
-      <g class="f f-asking">
-        <circle class="eye" cx="31" cy="54" r="10"/>
-        <circle class="pupil" cx="31" cy="54" r="4"/>
-        <circle class="eye" cx="61" cy="54" r="10"/>
-        <circle class="pupil" cx="61" cy="54" r="4"/>
-        <ellipse class="eye" cx="46" cy="78" rx="3.5" ry="4.5"/>
+    <!-- the five heads: the most urgent session in front, the rest small in the corners -->
+    <div id="crew" aria-hidden="true"></div>
+    <svg id="badge" viewBox="0 0 100 100" aria-hidden="true">
+      <g transform="translate(68 22) scale(.72) translate(-78 -20)">
         <g class="bubble">
-          <circle class="accent" cx="80" cy="21" r="14"/>
-          <path class="q" d="M75.5 17.5 Q75.5 13 80 13 Q84.5 13 84.5 17 Q84.5 19.5 82 21 Q80 22.2 80 24.5"/>
-          <circle class="qdot" cx="80" cy="29" r="1.9"/>
+          <circle class="accent" cx="78" cy="20" r="10"/>
+          <path class="q" d="M74.8 17.2 Q74.8 13.6 78 13.6 Q81.2 13.6 81.2 16.6 Q81.2 18.6 79.4 19.6 Q78 20.5 78 22.3"/>
+          <circle class="qdot" cx="78" cy="25.6" r="1.5"/>
         </g>
       </g>
     </svg>
+    <svg id="defs" width="0" height="0" aria-hidden="true"></svg>
 
     <div id="context" title="A session's context is nearly full. Claude will soon compact it and may forget details." hidden></div>
 
@@ -69,8 +36,9 @@
     <div id="resize" title="Drag to resize"></div>
   </div>
 
-  <div id="dot" title="Show face"></div>
+  <div id="dot" title="Show face"><div id="dot-face"></div></div>
 
+  <script src="crew-faces.js"></script>
   <script src="renderer.js"></script>
 </body>
 </html>
