@@ -275,6 +275,7 @@ function report(sessionId, state, meta = {}) {
   s.lastSeen = now;
   if (meta.cwd) s.cwd = meta.cwd;
   if (meta.transcript) s.transcript = meta.transcript;
+  if (meta.crew) s.crew = meta.crew;
   if (state === 'working') forgetLimited(sessionId); // it is running again, by hand or by auto-resume
   readSessionContext(s, now);
   refresh();
@@ -367,7 +368,20 @@ function focusNeediestSession() {
     if (!best || FOCUS_ORDER[s.state] > FOCUS_ORDER[best.state] ||
       (FOCUS_ORDER[s.state] === FOCUS_ORDER[best.state] && s.since > best.since)) best = s;
   }
-  if (best) focusWindow(best.cwd);
+  if (!best) return;
+  if (best.crew) return openInCrew(best.crew);
+  focusWindow(best.cwd);
+}
+
+// A Crew agent has no terminal of its own: show it in the Crew window instead.
+function openInCrew({ agent, cli, node }) {
+  try {
+    const child = spawn(node, [cli, 'open', agent], { detached: true, stdio: 'ignore', windowsHide: true });
+    child.on('error', () => {});
+    child.unref();
+  } catch {
+    // Crew isn't there any more: nothing to open
+  }
 }
 
 // ---------- task queue ----------
@@ -700,7 +714,7 @@ function handle(req, res) {
       if (state !== 'end' && !(state in PRIORITY)) {
         return json(res, 400, { error: 'state must be idle, working, done, asking or end' });
       }
-      const meta = { cwd: text(data.cwd), transcript: text(data.transcript) };
+      const meta = { cwd: text(data.cwd), transcript: text(data.transcript), crew: crewOf(data.crew) };
 
       // a finished turn may be handed the next task from the queue instead of stopping
       if (state === 'done' && data.queue) {
@@ -720,6 +734,19 @@ function handle(req, res) {
   }
 
   json(res, 404, { error: 'not found' });
+}
+
+// A Crew agent's run: which agent, and the `crew` command that opens it in the Crew window.
+// Only a real crew.mjs and a real node binary are accepted, since a click runs them.
+function crewOf(value) {
+  if (!value || typeof value !== 'object') return undefined;
+  const agent = text(value.agent);
+  const cli = text(value.cli);
+  const node = text(value.node) || 'node';
+  if (!agent || !/^[a-z][a-z0-9]{1,30}$/.test(agent)) return undefined;
+  if (!cli || path.basename(cli) !== 'crew.mjs' || !fs.existsSync(cli)) return undefined;
+  if (!/^node(\.exe)?$/i.test(path.basename(node))) return undefined;
+  return { agent, cli, node };
 }
 
 function text(value) {

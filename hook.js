@@ -92,7 +92,14 @@ process.stdin.on('end', () => {
   try {
     const event = JSON.parse(raw);
     if (!event.session_id) return quit();
+    // A Crew run is one headless turn: its process exits right after "done". Ending the session
+    // then would skip the green face, so let it go idle on the usual timer instead.
+    if (event.hook_event_name === 'SessionEnd' && process.env.CREW_WORKER === '1') return quit();
     const base = { session_id: event.session_id, cwd: event.cwd, transcript: event.transcript_path };
+    // A run by a Crew agent: clicking the face opens that agent in the Crew window.
+    if (process.env.CREW_AGENT && process.env.CREW_CLI) {
+      base.crew = { agent: process.env.CREW_AGENT, cli: process.env.CREW_CLI, node: process.env.CREW_NODE };
+    }
 
     if (event.hook_event_name === 'PermissionRequest') {
       clearTimeout(cap);

@@ -30,7 +30,7 @@ It starts by itself at login, has no taskbar button, and lives in the system tra
 ## Using it
 
 - **Move** it by dragging; **resize** it from the bottom-right corner.
-- **Click** the face to bring the window of the session that needs you to the front (VS Code, and terminals that show the folder name in their title).
+- **Click** the face to bring the window of the session that needs you to the front (VS Code, and terminals that show the folder name in their title). With several sessions busy it picks the most urgent: asking first, then done, then working. If that session is an agent in **Crew**, the Crew window opens on that agent instead.
 - Hover for two buttons: **mini mode** (a 24px dot) and **–** (hide to tray).
 - Right-click the tray icon for every setting.
 
