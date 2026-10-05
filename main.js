@@ -84,6 +84,7 @@ const config = {
   contextWarn: true,
   bigContextModels: [], // models seen holding more than 200k tokens
   limited: [], // sessions stopped by the usage limit: { id, cwd, at }
+  crewOnly: false, // show only Crew's agents, not every Claude Code session
 };
 
 function loadConfig() {
@@ -715,6 +716,8 @@ function handle(req, res) {
         return json(res, 400, { error: 'state must be idle, working, done, asking or end' });
       }
       const meta = { cwd: text(data.cwd), transcript: text(data.transcript), crew: crewOf(data.crew) };
+      // "Only Crew agents": every other Claude Code session is left out.
+      if (config.crewOnly && !meta.crew) return json(res, 200, { ok: true, state: shown });
 
       // a finished turn may be handed the next task from the queue instead of stopping
       if (state === 'done' && data.queue) {
@@ -730,7 +733,10 @@ function handle(req, res) {
   }
 
   if (req.method === 'POST' && req.url === '/permission') {
-    return readBody(req, res, (data) => askPhone(data, res));
+    return readBody(req, res, (data) => {
+      if (config.crewOnly && !crewOf(data.crew)) return json(res, 200, {});
+      askPhone(data, res);
+    });
   }
 
   json(res, 404, { error: 'not found' });
@@ -825,6 +831,18 @@ function buildTrayMenu() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: win.isVisible() ? 'Hide' : 'Show', click: toggleVisible },
     { label: 'Mini mode', type: 'checkbox', checked: config.mini, click: () => setMini(!config.mini) },
+    {
+      label: 'Only Crew agents',
+      type: 'checkbox',
+      checked: config.crewOnly,
+      click: () => {
+        config.crewOnly = !config.crewOnly;
+        if (config.crewOnly) for (const [id, s] of sessions) if (!s.crew) sessions.delete(id);
+        writeConfig();
+        refresh();
+        buildTrayMenu();
+      },
+    },
     {
       label: 'Sound',
       type: 'checkbox',
@@ -940,6 +958,25 @@ function disconnectHooks() {
   buildTrayMenu();
 }
 
+// Flags Crew's setup passes: --crew-only (show only Crew's agents), --connect (add the hooks
+// without asking, since the user already said yes in Crew's setup).
+function applyFlags(argv) {
+  let changed = false;
+  if (argv.includes('--crew-only') && !config.crewOnly) {
+    config.crewOnly = true;
+    changed = true;
+  }
+  if (argv.includes('--connect') && !hooks.isInstalled(HOOKS_HOME)) {
+    hooks.install({ runner: hookRunner(), hookSource: path.join(__dirname, 'hook.js'), home: HOOKS_HOME });
+    config.hooksAsked = true;
+    changed = true;
+  }
+  if (changed) {
+    writeConfig();
+    buildTrayMenu();
+  }
+}
+
 // asked once, on the first launch, unless the hooks are already there
 async function offerHooks() {
   if (config.hooksAsked || hooks.isInstalled(HOOKS_HOME)) return;
@@ -1023,7 +1060,8 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
+    applyFlags(argv);
     if (win && !win.isVisible()) toggleVisible();
   });
 
@@ -1039,6 +1077,7 @@ if (!app.requestSingleInstanceLock()) {
 
     createWindow();
     createTray();
+    applyFlags(process.argv);
     startServer();
     setInterval(sweep, SWEEP_MS);
     setInterval(usageTick, USAGE_ACTIVE_MS);
