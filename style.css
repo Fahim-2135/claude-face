@@ -3,7 +3,7 @@
 :root {
   --accent: #8b93a1;
   --ink: #2a211c;
-  --bg: rgba(241, 236, 225, 0.97);
+  --bg: #f1ece1;
 }
 body[data-state="working"] { --accent: #4da3ff; }
 body[data-state="done"]    { --accent: #4cd787; }
@@ -180,24 +180,6 @@ body.has-usage #usage { display: flex; }
   background: var(--week, #4cd787);
 }
 body:not(.has-week) #week-track { display: none; }
-#usage-label {
-  position: absolute;
-  left: 50%;
-  bottom: 100%;
-  transform: translateX(-50%);
-  padding: 0.3em 0.6em;
-  border-radius: 0.6em;
-  background: rgba(8, 9, 12, 0.94);
-  color: #f2f4f8;
-  font-size: clamp(8px, 7vmin, 13px);
-  line-height: 1.25;
-  text-align: center;
-  white-space: pre;
-  opacity: 0;
-  transition: opacity 0.15s;
-  pointer-events: none;
-}
-#usage:hover #usage-label { opacity: 1; }
 
 /* ---------- context warning ---------- */
 
@@ -223,8 +205,10 @@ body:not(.has-week) #week-track { display: none; }
 
 #controls {
   position: absolute;
-  top: 7%;
-  left: 7%;
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
   display: flex;
   gap: 3px;
   opacity: 0;

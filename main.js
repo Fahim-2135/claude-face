@@ -1124,7 +1124,10 @@ ipcMain.on('resize-start', () => {
 ipcMain.on('resize-move', () => {
   if (!resize) return;
   const cursor = screen.getCursorScreenPoint();
-  const delta = Math.max(cursor.x - resize.cursor.x, cursor.y - resize.cursor.y);
+  // Follow whichever way the pointer moved most, so dragging left or up shrinks it too.
+  const dx = cursor.x - resize.cursor.x;
+  const dy = cursor.y - resize.cursor.y;
+  const delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
   config.size = clamp(Math.round(resize.size + delta), MIN_SIZE, MAX_SIZE);
   place(resize.x, resize.y, config.size);
 });

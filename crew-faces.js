@@ -497,5 +497,5 @@ function appIconSVG(options = {}) {
   return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Crew">${DEFS.replace("</defs>", `${tint}</defs>`)}${back}${floor}${group}</svg>`;
 }
 
-  window.CrewFaces = { CRITTERS, SHAPES, DEFS, APP_ICON, prop, face, paint, mix };
+  window.CrewFaces = { CRITTERS, SHAPES, DEFS, APP_ICON, prop, face, paint, mix, iconFor };
 })();

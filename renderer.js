@@ -66,8 +66,14 @@ const dotFace = document.getElementById('dot-face');
 const drawn = new Map(); // key -> element
 let dotKey = '';
 
+/** A Crew agent seen without its face (an older Crew) wears the one Crew would give it. */
+function iconOf(face) {
+  if (face.icon) return face.icon;
+  return face.kind === 'crew' ? CF.iconFor(face.key.slice('crew:'.length)) : 'crown';
+}
+
 function svgFor(face) {
-  return `<svg viewBox="0 6 100 86"><g class="hd">${head(face.icon, face.state)}</g></svg>`;
+  return `<svg viewBox="0 6 100 86"><g class="hd">${head(iconOf(face), face.state)}</g></svg>`;
 }
 
 function showFaces(faces, fallback) {
@@ -83,9 +89,12 @@ function showFaces(faces, fallback) {
   faces.forEach((face, i) => {
     let el = drawn.get(face.key);
     if (!el) {
+      // A new head appears in its seat; only a change of seat glides.
       el = document.createElement('div');
+      el.style.transition = 'none';
       crewEl.append(el);
       drawn.set(face.key, el);
+      requestAnimationFrame(() => requestAnimationFrame(() => (el.style.transition = '')));
     }
     const [x, y, s] = SEATS[i];
     el.className = `seat n${i}${i === 0 ? ' lead' : ''}`;
@@ -102,7 +111,8 @@ function showFaces(faces, fallback) {
       if (face.title) {
         const name = document.createElement('span');
         name.className = 'who';
-        name.textContent = face.title;
+        // An agent known only by its id ("social") reads as a name ("Social").
+        name.textContent = /^[a-z]/.test(face.title) ? face.title[0].toUpperCase() + face.title.slice(1) : face.title;
         el.append(name);
       }
     }
@@ -119,7 +129,6 @@ function showFaces(faces, fallback) {
 // ---------- usage meter ----------
 
 const usageEl = document.getElementById('usage');
-const usageLabel = document.getElementById('usage-label');
 let usage = null; // { percent, resetsAt } or null when it can't be read
 
 function usageColor(percent) {
@@ -148,7 +157,8 @@ function describeUsage() {
   }
   const lines = [describeWindow('5h', usage)];
   if (usage.week) lines.push(describeWindow('week', usage.week));
-  usageLabel.textContent = lines.join('\n');
+  // A native tooltip: it can open outside the widget, so the numbers are never cut off.
+  usageEl.title = lines.join('\n');
   dot.title = 'Show face · used: ' + lines.join(', ');
 }
 
