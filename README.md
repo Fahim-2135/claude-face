@@ -20,7 +20,7 @@ Five little heads sit on a rounded badge. The one in front is the session that m
 
 Only "waiting for you" moves the colour, so a question stands out without flashing.
 
-**Who comes to the front:** a session that needs you, then one that has just finished (for a moment, so you see it), then one at work. Your own Claude Code sessions share one face: Claude orange, or VS Code black and blue (tray → **Your sessions' face**). Agents of a [Crew](https://github.com/Fahim-2135/crew) team each wear their own face and name, the same as in the Crew window, and the corners show the agents seen lately, dozing.
+**One face per chat:** every Claude Code chat gets a face of its own, picked at random from 25 and kept while the chat is open, so three chats in one project show as three different faces. Five faces are always on the badge: the awake ones are your chats, the rest doze, so you can count at a glance how many are running. **Who comes to the front:** a chat that needs you, then one that has just finished (for a moment, so you see it), then one at work. Prefer one look for every chat? Tray → **Your sessions' face** → Claude orange or VS Code black and blue. Agents of a [Crew](https://github.com/Fahim-2135/crew) team each wear their own face and name, the same as in the Crew window.
 
 ## Install (Windows)
 

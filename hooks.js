@@ -117,4 +117,15 @@ function remove({ home } = {}) {
   return { settingsPath, backupPath, changed };
 }
 
-module.exports = { install, remove, isInstalled, commandFor, EVENTS, HOOK_NAME };
+// The hook Claude Code runs is a copy (see locations). After claude-face updates, bring the copy up
+// to date so new features reach it; settings.json is left alone. True when the copy changed.
+function refreshHook({ hookSource, home }) {
+  const { hookPath } = locations(home);
+  if (!fs.existsSync(hookPath)) return false;
+  const fresh = fs.readFileSync(hookSource);
+  if (fresh.equals(fs.readFileSync(hookPath))) return false;
+  fs.writeFileSync(hookPath, fresh);
+  return true;
+}
+
+module.exports = { install, remove, isInstalled, refreshHook, commandFor, EVENTS, HOOK_NAME };

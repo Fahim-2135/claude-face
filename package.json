@@ -1,6 +1,6 @@
 {
   "name": "claude-face",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "A small floating face that shows what Claude Code is doing",
   "author": "Fahim",
   "license": "MIT",

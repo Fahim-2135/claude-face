@@ -56,10 +56,18 @@ const DEBUG = !!process.env.CLAUDE_FACE_DEBUG;
 
 // ---------- the faces: the five heads on the widget ----------
 // The front face is the most urgent session: one that needs you, then one that has just finished
-// (for a moment, so its happy pop shows), then one at work. Crew's agents wear their own faces;
-// your own Claude Code sessions share one. The corners fill with Crew agents seen lately, dozing,
-// and before any has been seen, with the five from Crew's icon.
-const YOUR_FACES = ['you', 'vscode'];
+// (for a moment, so its happy pop shows), then one at work. Every chat has a face of its own, so
+// the number of faces awake is the number of chats at work: Crew's agents wear their own faces;
+// your own chats each get one picked at random (or, if chosen in the tray, every chat wears the
+// same Claude orange or VS Code face). The rest of the five doze: Crew agents seen lately, then
+// the five from Crew's icon.
+const YOUR_FACES = ['random', 'you', 'vscode'];
+// The 25 faces (Crew's icons), in the order Crew lists them.
+const FACES = [
+  'crown', 'bulb', 'antenna', 'sprout', 'heart', 'hardhat', 'gradcap', 'headphones', 'beanie',
+  'cap', 'halo', 'bow', 'flowers', 'star', 'tophat', 'wizard', 'chef', 'cat', 'bunny', 'glasses',
+  'headset', 'bandana', 'party', 'cowboy', 'propeller',
+];
 const JUST_DONE_MS = 8 * 1000;
 const RESTING = ['crown', 'headset', 'bandana', 'tophat', 'antenna'];
 const MAX_FACES = 5;
@@ -95,7 +103,8 @@ const config = {
   bigContextModels: [], // models seen holding more than 200k tokens
   limited: [], // sessions stopped by the usage limit: { id, cwd, at }
   crewOnly: false, // show only Crew's agents, not every Claude Code session
-  yourFace: 'you', // the face of your own Claude Code sessions: 'you' (Claude orange) or 'vscode'
+  yourFace: 'random', // your own chats: 'random' (each its own face), or every chat the same: 'you' (Claude orange) or 'vscode'
+  faceModeChosen: false, // whether yourFace was picked in the tray (else the default applies)
   crewSeen: [], // Crew agents seen lately, newest first: { agent, icon, title } (they doze in the corners)
 };
 
@@ -110,7 +119,10 @@ function loadConfig() {
   if (!Array.isArray(config.bigContextModels)) config.bigContextModels = [];
   if (!Array.isArray(config.limited)) config.limited = [];
   if (!Array.isArray(config.crewSeen)) config.crewSeen = [];
-  if (!YOUR_FACES.includes(config.yourFace)) config.yourFace = 'you';
+  delete config.projectsSeen; // from a test build that gave each folder a face
+  if (!YOUR_FACES.includes(config.yourFace)) config.yourFace = 'random';
+  // 1.3.x saved 'you' for everyone; only a choice made in the tray is kept.
+  if (config.yourFace === 'you' && !config.faceModeChosen) config.yourFace = 'random';
   let changed = false;
   for (const key of ['ntfyTopic', 'replyTopic']) {
     if (typeof config[key] !== 'string' || !/^[-_A-Za-z0-9]{32,64}$/.test(config[key])) {
@@ -309,16 +321,35 @@ function rememberAgent({ agent, icon, title }) {
   if (JSON.stringify(config.crewSeen) !== before) saveConfig();
 }
 
+/**
+ * A chat's own face, picked at random the first time it is drawn and kept while the chat is open.
+ * It avoids faces other chats and Crew agents are wearing, so no two look alike.
+ */
+function chatFace(s) {
+  if (s.face) return s.face;
+  const taken = new Set();
+  for (const other of sessions.values()) {
+    if (other.face) taken.add(other.face);
+    if (other.crew && other.crew.icon) taken.add(other.crew.icon);
+  }
+  const free = FACES.filter((icon) => !taken.has(icon));
+  const pool = free.length ? free : FACES;
+  s.face = pool[Math.floor(Math.random() * pool.length)];
+  return s.face;
+}
+
 /** The faces to draw, front one first: { key, kind, icon, title, state }. */
 function lineup() {
   const now = Date.now();
   const rank = (s) =>
     s.state === 'asking' ? 4 : s.state === 'done' && now - s.since < JUST_DONE_MS ? 3 : s.state === 'working' ? 2 : s.state === 'done' ? 1 : 0;
   const best = new Map();
-  for (const s of sessions.values()) {
+  for (const [id, s] of sessions) {
+    // A Crew agent is one face however many runs it has; each of your chats is its own face,
+    // with no name under it.
     const face = s.crew
       ? { key: 'crew:' + s.crew.agent, kind: 'crew', icon: s.crew.icon || null, title: s.crew.title || s.crew.agent }
-      : { key: 'you', kind: 'you', icon: config.yourFace, title: 'You' };
+      : { key: 'chat:' + id, kind: 'chat', icon: config.yourFace === 'random' ? chatFace(s) : config.yourFace, title: '' };
     const entry = { ...face, state: s.state, rank: rank(s), since: s.since };
     const prev = best.get(face.key);
     if (!prev || entry.rank > prev.rank || (entry.rank === prev.rank && entry.since < prev.since)) best.set(face.key, entry);
@@ -329,7 +360,7 @@ function lineup() {
     if (faces.length >= MAX_FACES) break;
     if (!best.has('crew:' + a.agent)) faces.push({ key: 'crew:' + a.agent, kind: 'crew', icon: a.icon, title: a.title, state: 'idle' });
   }
-  for (const icon of RESTING) {
+  for (const icon of RESTING.concat(FACES)) {
     if (faces.length >= MAX_FACES) break;
     if (!faces.some((x) => x.icon === icon)) faces.push({ key: 'rest:' + icon, kind: 'rest', icon, title: '', state: 'idle' });
   }
@@ -899,14 +930,16 @@ function buildTrayMenu() {
     {
       label: "Your sessions' face",
       submenu: [
-        ['you', 'Claude orange'],
-        ['vscode', 'VS Code (black and blue)'],
+        ['random', 'Each chat its own face (picked at random)'],
+        ['you', 'Every chat Claude orange'],
+        ['vscode', 'Every chat VS Code (black and blue)'],
       ].map(([id, label]) => ({
         label,
         type: 'radio',
         checked: config.yourFace === id,
         click: () => {
           config.yourFace = id;
+          config.faceModeChosen = true;
           writeConfig();
           refresh();
           sendUpdate();
@@ -1044,6 +1077,12 @@ function disconnectHooks() {
 // Flags Crew's setup passes: --crew-only (show only Crew's agents), --connect (add the hooks
 // without asking, since the user already said yes in Crew's setup).
 function applyFlags(argv) {
+  // An update may bring a newer hook: refresh the copy Claude Code runs.
+  try {
+    hooks.refreshHook({ hookSource: path.join(__dirname, 'hook.js'), home: HOOKS_HOME });
+  } catch {
+    // the copy can't be written: the old hook keeps working
+  }
   let changed = false;
   if (argv.includes('--crew-only') && !config.crewOnly) {
     config.crewOnly = true;
