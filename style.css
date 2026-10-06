@@ -31,7 +31,7 @@ html, body {
   border: max(1.5px, 1.6vmin) solid color-mix(in srgb, var(--accent) 70%, transparent);
   transition: border-color 0.3s;
   cursor: grab;
-  overflow: hidden;
+  /* no overflow clipping: the resize grip lives in the corner outside the rounding */
 }
 #widget:active { cursor: grabbing; }
 
@@ -218,8 +218,9 @@ body:not(.has-week) #week-track { display: none; }
   position: absolute;
   right: 0;
   bottom: 0;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
+  z-index: 5;
   cursor: nwse-resize;
   opacity: 0;
   transition: opacity 0.15s;
