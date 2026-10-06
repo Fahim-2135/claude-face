@@ -8,6 +8,11 @@
 body[data-state="working"] { --accent: #4da3ff; }
 body[data-state="done"]    { --accent: #4cd787; }
 body[data-state="asking"]  { --accent: #ff9f43; }
+/* The background takes a pastel of the most urgent state, so a glance tells you; ivory while
+   everyone dozes. Only "needs you" moves: its orange slowly deepens and fades. */
+body[data-state="working"] { --bg: #d1e7ff; }
+body[data-state="done"]    { --bg: #d1f5e0; }
+body[data-state="asking"]  { --bg: #ffe6ce; --bg-deep: #ffb46c; }
 
 html, body {
   margin: 0;
@@ -29,7 +34,7 @@ html, body {
   border-radius: 24%;
   background: var(--bg);
   border: max(1.5px, 1.6vmin) solid color-mix(in srgb, var(--accent) 70%, transparent);
-  transition: border-color 0.3s;
+  transition: border-color 0.3s, background-color 0.4s;
   cursor: grab;
   /* no overflow clipping: the resize grip lives in the corner outside the rounding */
 }
@@ -102,6 +107,12 @@ body[data-state="asking"] #badge { opacity: 1; }
 .seat.n4 .hd { animation-delay: -2.8s; }
 body[data-state="asking"] .bubble { animation: pulse 1.6s ease-in-out infinite; }
 body[data-state="asking"] #widget::after { animation: glow 1.6s ease-in-out infinite; }
+body[data-state="asking"] #widget,
+body[data-state="asking"] #dot { animation: wash 2.4s ease-in-out infinite; }
+@keyframes wash {
+  0%, 100% { background-color: var(--bg); }
+  50% { background-color: var(--bg-deep); }
+}
 
 @keyframes breathe {
   0%, 100% { transform: scale(1, 1); }
@@ -283,7 +294,7 @@ body:not(.has-week) #week-track { display: none; }
 #dot-face { position: absolute; inset: 9% 6% 3%; pointer-events: none; }
 body.mini #widget { display: none; }
 body.mini #dot { display: block; }
-body.mini[data-state="asking"] #dot { animation: dot-pulse 1.2s ease-in-out infinite; }
+body.mini[data-state="asking"] #dot { animation: dot-pulse 1.2s ease-in-out infinite, wash 2.4s ease-in-out infinite; }
 
 @keyframes dot-pulse {
   0%, 100% { transform: scale(1); }
